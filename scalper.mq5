@@ -65,7 +65,7 @@ void OnTick(){
     }
     
     int positions = 0;
-    // Loops through every position
+    // Loops through every position.Increment every time we find a new position
     for(int i = PositionsTotal()-1; i >= 0; i--){
       // Get the position index of the value 0
       ulong posTicket = PositionGetTicket(i);
@@ -75,29 +75,42 @@ void OnTick(){
          if(PositionGetString(POSITION_SYMBOL) == _Symbol && PositionGetInteger(POSITION_MAGIC) == eamagic){
             positions++;
             
+            // Checks if we have a buy position
             if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY){
                if(PositionGetDouble(POSITION_VOLUME) >= ealots){
+                  
+                  // First TP: Position open price + open price - first SL
                   double tp = PositionGetDouble(POSITION_PRICE_OPEN) + (PositionGetDouble(POSITION_PRICE_OPEN) - PositionGetDouble(POSITION_SL));
                   
+                  //If price reaches this mark:
                   if(bid >= tp){
+                  
+                     // Then we close half of the position
                      if(trade.PositionClosePartial(posTicket, NormalizeDouble(PositionGetDouble(POSITION_VOLUME)/2,2))){
-                        
+                        // We move the SL. Calculate the new SL.
                         double sl = PositionGetDouble(POSITION_PRICE_OPEN);
+                        // Round the value
                         sl = NormalizeDouble(sl, _Digits);
                         if(trade.PositionModify(posTicket, sl, 0)){                       
                         }
                      }
                   }
                }else{
+               
+                  // Finds the lowest of the last 3 candles
                   int lowest = iLowest(_Symbol, PERIOD_M5, MODE_LOW, 3,1);
+                  
+                  // Calculate the new SL
                   double sl = iLow(_Symbol, PERIOD_M5, lowest);
                   sl = NormalizeDouble(sl, _Digits);
                   
+                  // Check if the new SL is greater than the position SL
                   if(sl > PositionGetDouble(POSITION_SL)){
                      if(trade.PositionModify(posTicket, sl, 0)){
                      }
                   }
                }
+            // Checks if we have a sell position
             }else if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL){
                   if(trade.PositionClosePartial(posTicket, NormalizeDouble(PositionGetDouble(POSITION_VOLUME)/2,2))){
                      double tp = PositionGetDouble(POSITION_PRICE_OPEN) - (PositionGetDouble(POSITION_SL) - PositionGetDouble(POSITION_PRICE_OPEN));
@@ -112,9 +125,14 @@ void OnTick(){
                         }
                      }            
                }else{
+                  // Finds the highest of the last 3 candles
                   int highest = iHighest(_Symbol, PERIOD_M5, MODE_HIGH, 3,1);
+                  
+                  // Calculate the new SL
                   double sl = iHigh(_Symbol, PERIOD_M5, highest);
                   sl = NormalizeDouble(sl, _Digits);
+                  
+                  // Check if the new SL is greater than the position SL
                   if(sl < PositionGetDouble(POSITION_SL)){
                      if(trade.PositionModify(posTicket, sl, 0)){
                      }
@@ -127,16 +145,20 @@ void OnTick(){
     
     
     int orders = 0;
-    double candleClosePrice = iClose(_Symbol, PERIOD_M5, 0);
+    
     // Checks for the total amount of orders
     for(int i = OrdersTotal()-1; i >= 0; i--){
-
+      
+      // Get the position index of the value 0
       ulong orderTicket = OrderGetTicket(i);
+      double candleClosePrice = iClose(_Symbol, PERIOD_M5, 0);
       if(OrderSelect(orderTicket)){
+         
+         // Order identifier:
          if(OrderGetString(ORDER_SYMBOL) == _Symbol && OrderGetInteger(ORDER_MAGIC) == eamagic){
             //if(OrderGetInteger(ORDER_TIME_SETUP) < TimeCurrent() - 10 * PeriodSeconds(PERIOD_M1)){
                //trade.OrderDelete(orderTicket);
-            if(candleClosePrice > maSlow[0] && positions == 0) {
+            if(candleClosePrice > maSlow[0]) {
                trade.OrderDelete(orderTicket);
             }
             orders++;
@@ -144,14 +166,23 @@ void OnTick(){
       }
     
     }
+   // BUY STOP function
+   // If direction is an UPTREND we can open a buyStop order
    if(trendDirection == 1){
       if(maFast[0] > maMiddle[0] && maMiddle[0] > maSlow[0]) {
          if(bid <= maFast[0]) {
+            
+            // If no other position is open
             if (positions + orders <= 0){
+            
+            // Returns an index of the highest price in a spesific timeframe
             int indexHighest = iHighest(_Symbol, PERIOD_M5, MODE_HIGH, 5, 1);
+            
+            // Calculate the high price with the iHigh-function. Returns the price of the candle at a spesific index
             double highPrice = iHigh(_Symbol, PERIOD_M5, indexHighest);
             highPrice = NormalizeDouble(highPrice, _Digits);
-
+            
+            // Calculate the lowest price - 30 pips
             double sl = iLow(_Symbol, PERIOD_M5, 0) - 30 * _Point;
             sl = NormalizeDouble(sl, _Digits);  
             
@@ -159,6 +190,9 @@ void OnTick(){
             }
          }
       }
+      
+   // SELL STOP function
+   // If direction is an DOWNTREND we can open a sellStop order
    }else if(trendDirection == -1) {
       if(maFast[0] < maMiddle[0] && maMiddle[0] < maSlow[0]) {
          if(bid >= maFast[0]) {
@@ -167,6 +201,7 @@ void OnTick(){
             double lowestPrice = iLow(_Symbol, PERIOD_M5, indexLowest);
             lowestPrice = NormalizeDouble(lowestPrice, _Digits);
             
+            // Calculate the highest price + 30 pips
             double sl = iHigh(_Symbol, PERIOD_M5, 0) + 30 * _Point;
             sl = NormalizeDouble(sl, _Digits);
             trade.SellStop(ealots, lowestPrice, _Symbol, sl);
