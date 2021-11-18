@@ -1,4 +1,4 @@
-#property version "2.00"
+#property version "3.00"
 
 #include <Trade\Trade.mqh>
 
@@ -112,7 +112,7 @@ void OnTick(){
                }
             // Checks if we have a sell position
             }else if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL){
-                  if(trade.PositionClosePartial(posTicket, NormalizeDouble(PositionGetDouble(POSITION_VOLUME)/2,2))){
+                  if(PositionGetDouble(POSITION_VOLUME) >= ealots){
                      double tp = PositionGetDouble(POSITION_PRICE_OPEN) - (PositionGetDouble(POSITION_SL) - PositionGetDouble(POSITION_PRICE_OPEN));
                   
                      if(bid <= tp){
@@ -151,7 +151,7 @@ void OnTick(){
       
       // Get the position index of the value 0
       ulong orderTicket = OrderGetTicket(i);
-      double candleClosePrice = iClose(_Symbol, PERIOD_M5, 0);
+      double candleClosePrice = iClose(_Symbol, PERIOD_M5, 1);
       if(OrderSelect(orderTicket)){
          
          // Order identifier:
