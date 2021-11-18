@@ -1,0 +1,21 @@
+RULES:(for a buy. The exact opposite for a sell)
+
+CRITERIA:
+---------
+1. The 8 period moving average must be above the 21 period moving average
+   on the 1 hour time frame.
+2. Price must be above the 8, 13 and 21 moving average on the 5 minute
+   time frame.
+
+TRIGGER:
+--------
+3. When price touches the 8 period moving average, we count 5 candles back'
+   previous to the trigger-candle. The highest of the last 5 candlesticks 
+   will be our entry.
+4. Place a buy-stop 3 pips above the trigger-candle with a stop-loss 
+   placed 3 pips below.
+
+TAKE PROFIT:
+------------
+5. First take profit(TP1) is 1 x the stop-loss. When reached we close 50%      of the trade and move stop-loss to the entry price.
+6. Second take profit(TP2) is placed 2 x the stop-loss.
